@@ -1,11 +1,12 @@
 using System.Collections;
 using System.Collections.Generic;
 using fts;
+using System;
 
 [PluginAttr("js_for_anything")]
 public static unsafe class JsPlugin
 {
-  [PluginFunctionAttr("register_function")]
+  [PluginFunctionAttr("register_function_c_str")]
   public static register_function registerFunction = null;
   public delegate void register_function(string name, uint id);
 
