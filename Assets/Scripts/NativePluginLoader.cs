@@ -133,6 +133,8 @@ namespace fts
   [System.Serializable]
   public class NativePluginLoader : MonoBehaviour, ISerializationCallbackReceiver
   {
+    public string DLL_folder = "";
+
     // Static fields
     static NativePluginLoader _singleton;
 
@@ -216,7 +218,7 @@ namespace fts
             IntPtr pluginHandle = IntPtr.Zero;
             if (!_loadedPlugins.TryGetValue(pluginName, out pluginHandle))
             {
-              var pluginPath = _path + pluginName + SystemLibrary.LIB_EXT;
+              var pluginPath = DLL_folder + pluginName + SystemLibrary.LIB_EXT;
               pluginHandle = SystemLibrary.LoadLib(pluginPath);
               if (pluginHandle == IntPtr.Zero)
                 throw new System.Exception("Failed to load plugin [" + pluginPath + "]");
