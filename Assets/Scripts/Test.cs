@@ -5,6 +5,8 @@ using System;
 
 public class Test : MonoBehaviour
 {
+  public string JSFile;
+
   List<Callback> list = new List<Callback>();
 
   void Start()
@@ -24,13 +26,9 @@ public class Test : MonoBehaviour
     }
 
     JsPlugin.printFunctionList();
+    updateLogs();
 
-    Debug.Log("ok");
-
-
-
-    Debug.Log("nice");
-
+    JsPlugin.InitFromPath(JSFile);
     updateLogs();
   }
 

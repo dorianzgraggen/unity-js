@@ -153,6 +153,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 41e427e7083066547a7ecbf4144cb89f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  JSFile: C:/projects/game-engine/unity-js/Assets/Demos/app.js
 --- !u!114 &596445095
 MonoBehaviour:
   m_ObjectHideFlags: 0

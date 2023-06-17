@@ -18,4 +18,9 @@ public static unsafe class JsPlugin
   public static get_rs_log getRsLog = null;
   public delegate byte* get_rs_log();
 
+
+  [PluginFunctionAttr("init_from_path")]
+  public static init_from_path InitFromPath = null;
+  public delegate void init_from_path(string path);
+
 }

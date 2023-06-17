@@ -23,10 +23,14 @@ namespace fts
 
     public const string LIB_EXT = ".dll";
 
+    static System.Random rnd = new System.Random();
+
     public static IntPtr LoadLib(string fileName)
     {
-
-      IntPtr hLib = LoadLibrary(fileName);
+      // wieso gahts nümme bro?
+      var copyPath = fileName.Replace(".dll", "" + rnd.Next() + ".dll");
+      System.IO.File.Copy(fileName, copyPath);
+      IntPtr hLib = LoadLibrary(copyPath);
       var errID = GetLastError();
       if (hLib == IntPtr.Zero)
       {
