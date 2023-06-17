@@ -23,4 +23,11 @@ public static unsafe class JsPlugin
   public static init_from_path InitFromPath = null;
   public delegate void init_from_path(string path);
 
+  [PluginFunctionAttr("poll_pending_invocations")]
+  public static poll_pending_invocations pollPendingInvocations = null;
+  public delegate byte* poll_pending_invocations();
+
+  [PluginFunctionAttr("send_result_c_str")]
+  public static send_result_c_str sendResult = null;
+  public delegate void send_result_c_str(string path);
 }

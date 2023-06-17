@@ -7,21 +7,23 @@ public class Test : MonoBehaviour
 {
   public string JSFile;
 
-  List<Callback> list = new List<Callback>();
+  List<Callback> callbacks = new List<Callback>();
 
   void Start()
   {
-    Callback cb1 = new Callback("lol", () =>
+    Callback cb1 = new Callback("lol", (args) =>
     {
-      Debug.Log("alles nice haha");
+      Debug.Log("alles nice haha" + args);
+      return "meow";
     });
-    list.Add(cb1);
+
+    callbacks.Add(cb1);
 
     JsPlugin.printFunctionList();
 
-    for (int i = 0; i < list.Count; i++)
+    for (int i = 0; i < callbacks.Count; i++)
     {
-      Callback cb = list[i];
+      Callback cb = callbacks[i];
       JsPlugin.registerFunction(cb.name, (uint)(i + 1));
     }
 
@@ -35,6 +37,53 @@ public class Test : MonoBehaviour
   void Update()
   {
     updateLogs();
+
+    handleFunctionCalls();
+  }
+
+  private Invocation pollPendingInvocations()
+  {
+    unsafe
+    {
+      byte* ptr = JsPlugin.pollPendingInvocations();
+
+      byte id = *ptr;
+      Debug.Log("id " + id);
+      if (id == 0)
+      {
+        return new Invocation(0, "");
+      }
+
+      var length_bytes = new byte[] { *(ptr + 1), *(ptr + 2), *(ptr + 3), *(ptr + 4) };
+      var length = BitConverter.ToUInt32(length_bytes);
+
+      var text_bytes = new byte[length];
+
+      for (byte i = 0; i < length; i++)
+      {
+        text_bytes[i] = *(ptr + 5 + i);
+      }
+
+      string args = System.Text.Encoding.UTF8.GetString(text_bytes, 0, text_bytes.Length);
+
+      return new Invocation(id, args);
+    }
+  }
+
+  private void handleFunctionCalls()
+  {
+    var invocation = pollPendingInvocations();
+
+    while (invocation.id != 0)
+    {
+      var callback = callbacks[invocation.id - 1];
+      Debug.Log("calling " + callback.name + " with args " + invocation.args);
+      var result = callback.fn(invocation.args);
+
+      JsPlugin.sendResult(result);
+
+      invocation = pollPendingInvocations();
+    }
   }
 
   private void updateLogs()
@@ -43,7 +92,6 @@ public class Test : MonoBehaviour
     {
       byte* a = JsPlugin.getRsLog();
       var length_bytes = new byte[] { *a, *(a + 1), *(a + 2), *(a + 3) };
-
       var length = BitConverter.ToUInt32(length_bytes);
       // Debug.Log("Length " + length);
 
@@ -68,12 +116,24 @@ public class Test : MonoBehaviour
 
 struct Callback
 {
-  public Action action;
+  public Func<string, string> fn;
   public string name;
 
-  public Callback(string name, Action action)
+  public Callback(string name, Func<string, string> fn)
   {
-    this.action = action;
+    this.fn = fn;
     this.name = name;
   }
+}
+
+
+struct Invocation
+{
+  public Invocation(byte id, string args)
+  {
+    this.id = id;
+    this.args = args;
+  }
+  public byte id;
+  public string args;
 }

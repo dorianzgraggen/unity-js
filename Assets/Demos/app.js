@@ -1,1 +1,2 @@
 writeFile("ahahaha", "mewo")
+lol();
