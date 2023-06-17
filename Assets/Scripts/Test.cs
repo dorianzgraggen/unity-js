@@ -2,6 +2,8 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 public class Test : MonoBehaviour
 {
@@ -14,10 +16,22 @@ public class Test : MonoBehaviour
     Callback cb1 = new Callback("lol", (args) =>
     {
       Debug.Log("alles nice haha" + args);
-      return "meow";
+      return new
+      {
+        lol = "alles geilooo",
+        num = 10482
+      };
+    });
+
+    Callback cb2 = new Callback("multiply", (args) =>
+    {
+      float a = (float)args[0];
+      float b = (float)args[1];
+      return a * b;
     });
 
     callbacks.Add(cb1);
+    callbacks.Add(cb2);
 
     JsPlugin.printFunctionList();
 
@@ -78,9 +92,16 @@ public class Test : MonoBehaviour
     {
       var callback = callbacks[invocation.id - 1];
       Debug.Log("calling " + callback.name + " with args " + invocation.args);
-      var result = callback.fn(invocation.args);
 
-      JsPlugin.sendResult(result);
+      var args = JArray.Parse(invocation.args);
+
+      var result = callback.fn(args);
+      Debug.Log("result " + result);
+      var json_result = JsonConvert.SerializeObject(result);
+
+      Debug.Log("json result " + json_result);
+
+      JsPlugin.sendResult(json_result);
 
       invocation = pollPendingInvocations();
     }
@@ -116,10 +137,10 @@ public class Test : MonoBehaviour
 
 struct Callback
 {
-  public Func<string, string> fn;
+  public Func<JArray, object> fn;
   public string name;
 
-  public Callback(string name, Func<string, string> fn)
+  public Callback(string name, Func<JArray, object> fn)
   {
     this.fn = fn;
     this.name = name;

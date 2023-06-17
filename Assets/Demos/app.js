@@ -1,2 +1,3 @@
 writeFile("ahahaha", "mewo")
-lol();
+// lol();
+console.log(multiply(4, 9));
