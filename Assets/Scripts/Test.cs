@@ -4,6 +4,7 @@ using UnityEngine;
 using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Js2;
 
 public class Test : MonoBehaviour
 {
@@ -33,16 +34,36 @@ public class Test : MonoBehaviour
       return a * b;
     });
 
+
+    Callback cube = new Callback("Cube", (args) =>
+    {
+      var jsCube = new JsObject();
+      var cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+
+      var setPosition = new Callback("setPosition", (args) =>
+      {
+        float x = (float)args[0];
+        float y = (float)args[1];
+        float z = (float)args[2];
+        cube.transform.position = new Vector3(x, y, z);
+        return "undefined";
+      });
+
+      jsCube.addMethod(setPosition);
+
+      return jsCube.buildReturnValue();
+    });
+
     callbacks.Add(cb1);
     callbacks.Add(cb2);
 
     JsPlugin.printFunctionList();
 
-    for (int i = 0; i < callbacks.Count; i++)
-    {
-      Callback cb = callbacks[i];
-      JsPlugin.registerFunction(cb.name, (uint)(i + 1));
-    }
+    // for (int i = 0; i < callbacks.Count; i++)
+    // {
+    //   Callback cb = callbacks[i];
+    //   JsPlugin.registerFunction(cb.name, (uint)(i + 1));
+    // }
 
     JsPlugin.printFunctionList();
     updateLogs();
@@ -64,6 +85,7 @@ public class Test : MonoBehaviour
   {
     if (UnityEngine.Random.Range(0f, 1f) > 0.99f)
     {
+      return;
       Debug.Log("will send event lucky");
       // JsEvent evt = new JsEvent("lucky", new { num = 22.22f });
 
@@ -107,7 +129,7 @@ public class Test : MonoBehaviour
 
     while (invocation.id != 0)
     {
-      var callback = callbacks[invocation.id - 1];
+      var callback = Callback.dict[invocation.id];
       Debug.Log("calling " + callback.name + " with args " + invocation.args);
 
       var args = JArray.Parse(invocation.args);
@@ -152,16 +174,25 @@ public class Test : MonoBehaviour
 }
 
 
-struct Callback
+public struct Callback
 {
+  private static uint nextId = 1;
   public Func<JArray, object> fn;
   public string name;
+  public uint id;
 
   public Callback(string name, Func<JArray, object> fn)
   {
+    this.id = nextId;
+    nextId++;
     this.fn = fn;
     this.name = name;
+
+    JsPlugin.registerFunction(this.name, this.id);
+    dict[this.id] = this;
   }
+
+  public static Dictionary<uint, Callback> dict = new Dictionary<uint, Callback>();
 }
 
 
@@ -175,3 +206,4 @@ struct Invocation
   public byte id;
   public string args;
 }
+
