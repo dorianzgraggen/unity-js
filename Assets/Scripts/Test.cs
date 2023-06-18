@@ -13,6 +13,9 @@ public class Test : MonoBehaviour
 
   void Start()
   {
+    JsPlugin.clearLogFile();
+    JsPlugin.setLogToFile(true);
+
     Callback cb1 = new Callback("lol", (args) =>
     {
       Debug.Log("alles nice haha" + args);

@@ -30,4 +30,12 @@ public static unsafe class JsPlugin
   [PluginFunctionAttr("send_result_c_str")]
   public static send_result_c_str sendResult = null;
   public delegate void send_result_c_str(string path);
+
+  [PluginFunctionAttr("set_log_to_file")]
+  public static set_log_to_file setLogToFile = null;
+  public delegate void set_log_to_file(bool logToFile);
+
+  [PluginFunctionAttr("clear_log_file")]
+  public static clear_log_file clearLogFile = null;
+  public delegate void clear_log_file();
 }
