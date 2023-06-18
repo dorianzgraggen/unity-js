@@ -9,6 +9,9 @@ addEventListener("lucky", (e) => {
 
 
 let cube = new Cube(20, "red");
+console2.log(cube)
+console2.log("based")
+cube.setPosition(0, 1, 0);
 
 function tick() {
 
