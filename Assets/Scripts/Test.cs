@@ -47,7 +47,7 @@ public class Test : MonoBehaviour
         float y = (float)args[1];
         float z = (float)args[2];
         cube.transform.position = new Vector3(x, y, z);
-        return "undefined";
+        return "";
       });
 
       jsCube.addMethod(setPosition);
@@ -58,8 +58,6 @@ public class Test : MonoBehaviour
       return ret;
     });
 
-    callbacks.Add(cb1);
-    callbacks.Add(cb2);
 
     JsPlugin.printFunctionList();
 
