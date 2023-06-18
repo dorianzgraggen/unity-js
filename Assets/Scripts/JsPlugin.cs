@@ -8,7 +8,7 @@ public static unsafe class JsPlugin
 {
   [PluginFunctionAttr("register_function_c_str")]
   public static register_function registerFunction = null;
-  public delegate void register_function(string name, uint id);
+  public delegate void register_function(string name, uint id, bool is_constructor);
 
   [PluginFunctionAttr("print_function_list")]
   public static print_function_list printFunctionList = null;

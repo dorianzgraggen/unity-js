@@ -17,7 +17,7 @@ public class Test : MonoBehaviour
     JsPlugin.clearLogFile();
     JsPlugin.setLogToFile(true);
 
-    Callback cb1 = new Callback("lol", (args) =>
+    Callback cb1 = new Callback("lol", false, (args) =>
     {
       Debug.Log("alles nice haha" + args);
       return new
@@ -27,7 +27,7 @@ public class Test : MonoBehaviour
       };
     });
 
-    Callback cb2 = new Callback("multiply", (args) =>
+    Callback cb2 = new Callback("multiply", false, (args) =>
     {
       float a = (float)args[0];
       float b = (float)args[1];
@@ -35,12 +35,13 @@ public class Test : MonoBehaviour
     });
 
 
-    Callback cube = new Callback("Cube", (args) =>
+    Callback cube = new Callback("Cube", true, (args) =>
     {
+      Debug.Log("called cube");
       var jsCube = new JsObject();
       var cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
 
-      var setPosition = new Callback("setPosition", (args) =>
+      var setPosition = new Callback("setPosition", false, (args) =>
       {
         float x = (float)args[0];
         float y = (float)args[1];
@@ -51,7 +52,10 @@ public class Test : MonoBehaviour
 
       jsCube.addMethod(setPosition);
 
-      return jsCube.buildReturnValue();
+      var ret = jsCube.buildReturnValue();
+
+      Debug.Log("ret" + ret);
+      return ret;
     });
 
     callbacks.Add(cb1);
@@ -181,14 +185,17 @@ public struct Callback
   public string name;
   public uint id;
 
-  public Callback(string name, Func<JArray, object> fn)
+  private bool isConstructor;
+
+  public Callback(string name, bool isConstructor, Func<JArray, object> fn)
   {
     this.id = nextId;
     nextId++;
     this.fn = fn;
     this.name = name;
+    this.isConstructor = isConstructor;
 
-    JsPlugin.registerFunction(this.name, this.id);
+    JsPlugin.registerFunction(this.name, this.id, this.isConstructor);
     dict[this.id] = this;
   }
 

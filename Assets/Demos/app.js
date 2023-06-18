@@ -8,7 +8,7 @@ addEventListener("lucky", (e) => {
 })
 
 
-let cube = new Cube();
+let cube = new Cube(20, "red");
 
 function tick() {
 
