@@ -55,7 +55,21 @@ public class Test : MonoBehaviour
   {
     updateLogs();
 
+    sendEvents();
+
     handleFunctionCalls();
+  }
+
+  private void sendEvents()
+  {
+    if (UnityEngine.Random.Range(0f, 1f) > 0.99f)
+    {
+      Debug.Log("will send event lucky");
+      // JsEvent evt = new JsEvent("lucky", new { num = 22.22f });
+
+      string data = JsonConvert.SerializeObject(new { okok = "haha", num = 22.22f });
+      JsPlugin.sendEvent("lucky", data);
+    }
   }
 
   private Invocation pollPendingInvocations()

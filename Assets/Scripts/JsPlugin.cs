@@ -38,4 +38,8 @@ public static unsafe class JsPlugin
   [PluginFunctionAttr("clear_log_file")]
   public static clear_log_file clearLogFile = null;
   public delegate void clear_log_file();
+
+  [PluginFunctionAttr("send_event_c_str")]
+  public static send_event_c_str sendEvent = null;
+  public delegate void send_event_c_str(string type, string data);
 }
