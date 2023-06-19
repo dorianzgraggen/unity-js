@@ -166,7 +166,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3b2e29c60da0da44dbde8a9588866d2f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  DLL_folder: C:/Users/Detlef/Documents/GitHub/js-for-anything/src/target/debug/
+  DevPath: C:/Users/Detlef/Documents/GitHub/js-for-anything/src/target/debug/
 --- !u!4 &596445096
 Transform:
   m_ObjectHideFlags: 0
