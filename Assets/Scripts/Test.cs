@@ -29,19 +29,24 @@ public class Test : MonoBehaviour
   public static string TaskCallback(byte id, string jsonArgs)
   {
 
-
+    var stopwatch = new System.Diagnostics.Stopwatch();
     var callback = Callback.dict[id];
-    Debug.Log("calling " + callback.name + " with args " + jsonArgs);
+    // Debug.Log("calling " + callback.name + " with args " + jsonArgs);
 
     var args = JArray.Parse(jsonArgs);
 
     var result = callback.fn(args);
-    Debug.Log("result " + result);
+    // Debug.Log("result " + result);
+    stopwatch.Start();
     var json_result = JsonConvert.SerializeObject(result);
+    stopwatch.Stop();
 
-    Debug.Log("json result " + json_result);
+    // Debug.Log("json result " + json_result);
 
-    Debug.Log("Received from Rust " + args);
+    // Debug.Log("Received from Rust " + args);
+
+    var micros = stopwatch.ElapsedTicks * 1000 * 1000 / System.Diagnostics.Stopwatch.Frequency;
+    Debug.Log("elapsed micros:" + micros);
     return json_result;
   }
 

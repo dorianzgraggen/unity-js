@@ -15,8 +15,9 @@ console2.log("based")
 
 
 function testPerformance() {
-  for (let i = 0; i < 30; i++) {
-    cube.setPosition(Math.cos(TIME.seconds * 2), Math.sin(TIME.seconds * 2), 0);
+  for (let i = 0; i < 100; i++) {
+    // cube.setPosition(Math.cos(TIME.seconds * 2), Math.sin(TIME.seconds * 2), 0);
+    multiply(4, i);
   }
 }
 
@@ -24,7 +25,7 @@ function tick() {
   cube.setPosition(Math.cos(TIME.seconds * 2), Math.sin(TIME.seconds * 2), 0);
   cube2.setPosition(Math.sin(TIME.seconds * 2), Math.cos(TIME.seconds * 2), 0);
 
-  // testPerformance();
+  testPerformance();
 }
 
 const TIME = {
