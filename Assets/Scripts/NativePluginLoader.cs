@@ -5,6 +5,7 @@
 //   Forrest Smith
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using UnityEngine;
@@ -15,119 +16,22 @@ namespace fts
   // ------------------------------------------------------------------------
   // Native API for loading/unloading NativePlugins
   //
+  // TODO: Handle non-Windows platforms
   // ------------------------------------------------------------------------
   static class SystemLibrary
   {
-
-#if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
-
-    public const string LIB_EXT = ".dll";
-
-    static System.Random rnd = new System.Random();
-
-    public static IntPtr LoadLib(string fileName)
-    {
-      // wieso gahts nümme bro?
-      var copyPath = fileName.Replace(".dll", "" + rnd.Next() + ".dll");
-      System.IO.File.Copy(fileName, copyPath);
-      IntPtr hLib = LoadLibrary(copyPath);
-      var errID = GetLastError();
-      if (hLib == IntPtr.Zero)
-      {
-        Debug.LogError(string.Format("Failed to load library [{0}]. Err: [{1}]", fileName, errID));
-      }
-      return hLib;
-    }
-
-    public static void FreeLib(IntPtr hLib)
-    {
-      if (hLib == IntPtr.Zero)
-        return;
-
-      FreeLibrary(hLib);
-    }
-
-    public static IntPtr GetAddress(IntPtr hLib, string fnName)
-    {
-      IntPtr fnPtr = GetProcAddress(hLib, fnName);
-      var errID = GetLastError();
-      if (fnPtr == IntPtr.Zero)
-      {
-        Debug.LogError(string.Format("Failed to find function [{0}] in library. Err: [{1}]", fnName, errID));
-      }
-      return fnPtr;
-    }
-
     [DllImport("kernel32", SetLastError = true, CharSet = CharSet.Unicode)]
-    static private extern IntPtr LoadLibrary(string lpFileName);
+    static public extern IntPtr LoadLibrary(string lpFileName);
 
     [DllImport("kernel32", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
-    static private extern bool FreeLibrary(IntPtr hModule);
+    static public extern bool FreeLibrary(IntPtr hModule);
 
     [DllImport("kernel32")]
-    static private extern IntPtr GetProcAddress(IntPtr hModule, string procedureName);
+    static public extern IntPtr GetProcAddress(IntPtr hModule, string procedureName);
 
     [DllImport("kernel32.dll")]
-    static private extern uint GetLastError();
-
-#elif UNITY_EDITOR_OSX || UNITY_STANDALONE_OSX
-        
-        public const string LIB_EXT = ".dylib"; 
-        
-        public static IntPtr LoadLib(string fileName)
-        {
-            const int RTLD_NOW = 2;
-            IntPtr hLib = dlopen(fileName, RTLD_NOW);
-            var errPtr = dlerror();
-            if (errPtr != IntPtr.Zero) {
-                Debug.LogError(Marshal.PtrToStringAnsi(errPtr));
-            }
-            else
-            {
-                Debug.Log($"Loaded {fileName}");
-            }
-            return hLib;
-        }
-        
-        public static void FreeLib(IntPtr hLib)
-        {
-            if (hLib == IntPtr.Zero)
-                return;
-            dlclose(hLib);
-        }
-        
-        public static IntPtr GetAddress(IntPtr hLib, string fnName)
-        {
-            IntPtr fnPtr = dlsym(hLib, fnName);
-            var errPtr = dlerror();
-            if (errPtr != IntPtr.Zero) {
-                Debug.LogError(Marshal.PtrToStringAnsi(errPtr));
-            }
-            else
-            {
-                Debug.Log($"Found symbol {fnName}");
-            }
-            return fnPtr;
-        }
-        
-        [DllImport ("__Internal")]
-        private static extern IntPtr dlopen(String fileName, int flags);
-
-        [DllImport ("__Internal")]
-        private static extern IntPtr dlsym(IntPtr handle, String symbol);
-
-        [DllImport ("__Internal")]
-        private static extern int dlclose(IntPtr handle);
-
-        [DllImport ("__Internal")]
-        private static extern IntPtr dlerror();
-        
-#else
-
-#error Unsupported platform.
-
-#endif
+    static public extern uint GetLastError();
   }
 
 
@@ -137,7 +41,8 @@ namespace fts
   [System.Serializable]
   public class NativePluginLoader : MonoBehaviour, ISerializationCallbackReceiver
   {
-    public string DLL_folder = "";
+    // Constants
+    const string EXT = ".dll"; // TODO: Handle different platforms
 
     // Static fields
     static NativePluginLoader _singleton;
@@ -192,7 +97,7 @@ namespace fts
     {
       foreach (var kvp in _loadedPlugins)
       {
-        SystemLibrary.FreeLib(kvp.Value);
+        bool result = SystemLibrary.FreeLibrary(kvp.Value);
       }
       _loadedPlugins.Clear();
     }
@@ -222,8 +127,8 @@ namespace fts
             IntPtr pluginHandle = IntPtr.Zero;
             if (!_loadedPlugins.TryGetValue(pluginName, out pluginHandle))
             {
-              var pluginPath = DLL_folder + pluginName + SystemLibrary.LIB_EXT;
-              pluginHandle = SystemLibrary.LoadLib(pluginPath);
+              var pluginPath = _path + pluginName + EXT;
+              pluginHandle = SystemLibrary.LoadLibrary(pluginPath);
               if (pluginHandle == IntPtr.Zero)
                 throw new System.Exception("Failed to load plugin [" + pluginPath + "]");
 
@@ -245,9 +150,12 @@ namespace fts
                 var functionName = fieldAttribute.functionName;
 
                 // Get function pointer
-                var fnPtr = SystemLibrary.GetAddress(pluginHandle, functionName);
+                var fnPtr = SystemLibrary.GetProcAddress(pluginHandle, functionName);
                 if (fnPtr == IntPtr.Zero)
+                {
+                  Debug.LogError(string.Format("Failed to find function [{0}] in plugin [{1}]. Err: [{2}]", functionName, pluginName, SystemLibrary.GetLastError()));
                   continue;
+                }
 
                 // Get delegate pointer
                 var fnDelegate = Marshal.GetDelegateForFunctionPointer(fnPtr, field.FieldType);
