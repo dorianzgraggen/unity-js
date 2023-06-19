@@ -16,6 +16,8 @@ public class Test : MonoBehaviour
 
   static ConcurrentQueue<Action> pendingFuncs = new ConcurrentQueue<Action>();
 
+  static Dictionary<uint, GameObject> gameObjects = new Dictionary<uint, GameObject>();
+
   // Define the callback function
   public static int MyCallback(int a, int b)
   {
@@ -72,12 +74,14 @@ public class Test : MonoBehaviour
     {
       Debug.Log("called cube");
       var jsCube = new JsObject();
+      var objId = jsCube.getId();
 
       pendingFuncs.Enqueue(() =>
       {
         Debug.Log(args);
         var cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
         float size = (float)args[0];
+        gameObjects[objId] = cube;
         cube.transform.localScale = new Vector3(size, size, size);
       });
 
@@ -88,7 +92,10 @@ public class Test : MonoBehaviour
         float x = (float)args[0];
         float y = (float)args[1];
         float z = (float)args[2];
-        // cube.transform.position = new Vector3(x, y, z);
+        pendingFuncs.Enqueue(() =>
+        {
+          gameObjects[objId].transform.position = new Vector3(x, y, z);
+        });
         return "";
       });
 
@@ -129,6 +136,11 @@ public class Test : MonoBehaviour
     sendEvents();
 
     handleFunctionCalls();
+  }
+
+  private void OnDisable()
+  {
+    JsPlugin.Stop();
   }
 
   private void sendEvents()

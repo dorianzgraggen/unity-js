@@ -32,6 +32,11 @@ namespace Js2
       };
     }
 
+    public uint getId()
+    {
+      return id;
+    }
+
     public void addMethod(Callback callback)
     {
       methods[callback.name] = callback.id;

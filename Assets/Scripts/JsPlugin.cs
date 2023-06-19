@@ -54,4 +54,8 @@ public static unsafe class JsPlugin
   [PluginFunctionAttr("set_task_callback")]
   public static set_task_callback setTaskCallback = null;
   public delegate void set_task_callback(TaskCallbackDelegate callback);
+
+  [PluginFunctionAttr("stop")]
+  public static stop Stop = null;
+  public delegate void stop();
 }
