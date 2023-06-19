@@ -8,11 +8,28 @@ writeFile("ahahaha", "mewo")
 // })
 
 
-let cube = new Cube(0.4, "red");
-let cube2 = new Cube(1, "red");
-console2.log(cube)
-console2.log("based")
 
+let cubes = [];
+
+for (let i = 0; i < 5; i++) {
+  let top = new Cube(0.4);
+  let bottom = new Cube(0.4);
+  top.setHSV(i / 5, 1, 0.8);
+  bottom.setHSV(i / 5, 1, 0.3);
+  cubes.push([top, bottom]);
+}
+
+let player = new Cube(0.2);
+// player.enableGravity(true);
+
+addEventListener("keydown", e => {
+  console2.log(e);
+})
+
+
+addEventListener("keyup", e => {
+  console2.log(e);
+})
 
 function testPerformance() {
   for (let i = 0; i < 100; i++) {
@@ -22,10 +39,13 @@ function testPerformance() {
 }
 
 function tick() {
-  cube.setPosition(Math.cos(TIME.seconds * 2), Math.sin(TIME.seconds * 2), 0);
-  cube2.setPosition(Math.sin(TIME.seconds * 2), Math.cos(TIME.seconds * 2), 0);
+  cubes.forEach(([top, bottom], i) => {
+    let x = -(TIME.seconds * 0.5 + i) % 5;
+    top.setPosition(x, 1, 0);
+    bottom.setPosition(x, -1, 0);
+  });
 
-  testPerformance();
+  // testPerformance();
 }
 
 const TIME = {

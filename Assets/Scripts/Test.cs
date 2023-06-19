@@ -25,11 +25,10 @@ public class Test : MonoBehaviour
     // ...
     return a + b;
   }
+  static System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
 
   public static string TaskCallback(byte id, string jsonArgs)
   {
-
-    var stopwatch = new System.Diagnostics.Stopwatch();
     var callback = Callback.dict[id];
     // Debug.Log("calling " + callback.name + " with args " + jsonArgs);
 
@@ -37,7 +36,7 @@ public class Test : MonoBehaviour
 
     var result = callback.fn(args);
     // Debug.Log("result " + result);
-    stopwatch.Start();
+    stopwatch.Restart();
     var json_result = JsonConvert.SerializeObject(result);
     stopwatch.Stop();
 
@@ -103,8 +102,45 @@ public class Test : MonoBehaviour
         });
         return "";
       });
-
       jsCube.addMethod(setPosition);
+
+      var setHSV = new Callback("setHSV", false, (args) =>
+      {
+        float h = (float)args[0];
+        float s = (float)args[1];
+        float v = (float)args[2];
+        pendingFuncs.Enqueue(() =>
+        {
+
+          var go = gameObjects[objId];
+          go.GetComponent<MeshRenderer>().material.color = Color.HSVToRGB(h, s, v);
+        });
+        return "";
+      });
+      jsCube.addMethod(setHSV);
+
+      var enableGravity = new Callback("enableGravity", false, (args) =>
+      {
+        bool enable = (bool)args[0];
+        pendingFuncs.Enqueue(() =>
+        {
+          var go = gameObjects[objId];
+          var rb = go.GetComponent<Rigidbody>();
+          if (rb != null)
+          {
+            rb.useGravity = enable;
+            return;
+          }
+
+          if (enable)
+          {
+            go.AddComponent<Rigidbody>();
+          }
+        });
+
+        return "";
+      });
+      jsCube.addMethod(enableGravity);
 
       var ret = jsCube.buildReturnValue();
 
@@ -126,6 +162,7 @@ public class Test : MonoBehaviour
 
     JsPlugin.InitFromPath(JSFile);
     updateLogs();
+    keyCodes = Enum.GetValues(typeof(KeyCode));
   }
 
   void Update()
@@ -140,7 +177,29 @@ public class Test : MonoBehaviour
 
     sendEvents();
 
-    handleFunctionCalls();
+    handleKeys();
+  }
+
+  Array keyCodes;
+
+  private void handleKeys()
+  {
+    foreach (KeyCode key in keyCodes)
+    {
+      if (Input.GetKeyDown(key))
+      {
+        Debug.Log("KeyCode down: " + key);
+        string data = JsonConvert.SerializeObject(new { key = key.ToString() });
+        JsPlugin.sendEvent("keydown", data);
+      }
+
+      if (Input.GetKeyUp(key))
+      {
+        Debug.Log("KeyCode up: " + key);
+        string data = JsonConvert.SerializeObject(new { key = key.ToString() });
+        JsPlugin.sendEvent("keyup", data);
+      }
+    }
   }
 
   private void OnDisable()
