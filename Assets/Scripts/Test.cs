@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using UnityEngine;
 using System;
 using Newtonsoft.Json;
@@ -12,10 +13,42 @@ public class Test : MonoBehaviour
 
   List<Callback> callbacks = new List<Callback>();
 
+
+  static ConcurrentQueue<Action> pendingFuncs = new ConcurrentQueue<Action>();
+
+  // Define the callback function
+  public static int MyCallback(int a, int b)
+  {
+    // Handle the callback logic in C#
+    // ...
+    return a + b;
+  }
+
+  public static string TaskCallback(byte id, string jsonArgs)
+  {
+
+
+    var callback = Callback.dict[id];
+    Debug.Log("calling " + callback.name + " with args " + jsonArgs);
+
+    var args = JArray.Parse(jsonArgs);
+
+    var result = callback.fn(args);
+    Debug.Log("result " + result);
+    var json_result = JsonConvert.SerializeObject(result);
+
+    Debug.Log("json result " + json_result);
+
+    Debug.Log("Received from Rust " + args);
+    return json_result;
+  }
+
   void Start()
   {
     JsPlugin.clearLogFile();
     JsPlugin.setLogToFile(true);
+    JsPlugin.myRustFunction(MyCallback);
+    JsPlugin.setTaskCallback(TaskCallback);
 
     Callback cb1 = new Callback("lol", false, (args) =>
     {
@@ -39,14 +72,23 @@ public class Test : MonoBehaviour
     {
       Debug.Log("called cube");
       var jsCube = new JsObject();
-      var cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+
+      pendingFuncs.Enqueue(() =>
+      {
+        Debug.Log(args);
+        var cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        float size = (float)args[0];
+        cube.transform.localScale = new Vector3(size, size, size);
+      });
+
+      Debug.Log("pending count " + pendingFuncs.Count);
 
       var setPosition = new Callback("setPosition", false, (args) =>
       {
         float x = (float)args[0];
         float y = (float)args[1];
         float z = (float)args[2];
-        cube.transform.position = new Vector3(x, y, z);
+        // cube.transform.position = new Vector3(x, y, z);
         return "";
       });
 
@@ -76,6 +118,12 @@ public class Test : MonoBehaviour
 
   void Update()
   {
+    Action result;
+    while (pendingFuncs.TryDequeue(out result))
+    {
+      result();
+    }
+
     updateLogs();
 
     sendEvents();
