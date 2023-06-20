@@ -21,6 +21,7 @@ namespace Js2
 
     private uint id = 0;
     private Dictionary<string, uint> methods = new Dictionary<string, uint>();
+    private Dictionary<string, uint> getters = new Dictionary<string, uint>();
 
     public object buildReturnValue()
     {
@@ -28,7 +29,8 @@ namespace Js2
       {
         ___type = "object_instance",
         id = this.id,
-        methods = this.methods
+        methods = this.methods,
+        getters = this.getters
       };
     }
 
@@ -40,6 +42,11 @@ namespace Js2
     public void addMethod(Callback callback)
     {
       methods[callback.name] = callback.id;
+    }
+
+    public void addGetter(Callback callback)
+    {
+      getters[callback.name] = callback.id;
     }
   }
 

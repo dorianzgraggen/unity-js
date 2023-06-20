@@ -36,6 +36,7 @@ addEventListener("keydown", e => {
 
 addEventListener("keyup", e => {
   console2.log(e);
+  // console.log(player.x)
 })
 
 function testPerformance() {

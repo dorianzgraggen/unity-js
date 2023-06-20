@@ -178,6 +178,13 @@ public class Test : MonoBehaviour
       });
       jsCube.addMethod(setPosition);
 
+
+      var getX = new Callback("x", false, (args) =>
+      {
+        return 222222;
+      });
+      jsCube.addGetter(setPosition);
+
       var setHSV = new Callback("setHSV", false, (args) =>
       {
         float h = (float)args[0];
