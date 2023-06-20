@@ -53,7 +53,6 @@ public class Test : MonoBehaviour
   {
     JsPlugin.clearLogFile();
     JsPlugin.setLogToFile(true);
-    JsPlugin.myRustFunction(MyCallback);
     JsPlugin.setTaskCallback(TaskCallback);
 
     Callback cb1 = new Callback("lol", false, (args) =>

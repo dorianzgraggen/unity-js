@@ -4,7 +4,6 @@ using fts;
 using System;
 
 
-public delegate int MyCallbackDelegate(int a, int b);
 public delegate string TaskCallbackDelegate(byte id, string args);
 
 [PluginAttr("js_for_anything")]
@@ -47,9 +46,6 @@ public static unsafe class JsPlugin
   public static send_event_c_str sendEvent = null;
   public delegate void send_event_c_str(string type, string data);
 
-  [PluginFunctionAttr("my_rust_function")]
-  public static my_rust_function myRustFunction = null;
-  public delegate void my_rust_function(MyCallbackDelegate callback);
 
   [PluginFunctionAttr("set_task_callback")]
   public static set_task_callback setTaskCallback = null;
