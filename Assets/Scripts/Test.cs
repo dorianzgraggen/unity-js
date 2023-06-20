@@ -45,9 +45,11 @@ public class Test : MonoBehaviour
     // Debug.Log("Received from Rust " + args);
 
     var micros = stopwatch.ElapsedTicks * 1000 * 1000 / System.Diagnostics.Stopwatch.Frequency;
-    Debug.Log("elapsed micros:" + micros);
+    // Debug.Log("elapsed micros:" + micros);
     return json_result;
   }
+
+  Color backgroundColor = Color.gray;
 
   void Start()
   {
@@ -72,6 +74,70 @@ public class Test : MonoBehaviour
       return a * b;
     });
 
+    Callback setBackgroundColorHSV = new Callback("setBackgroundColorHSV", false, (args) =>
+    {
+      float h = (float)args[0];
+      float s = (float)args[1];
+      float v = (float)args[2];
+      this.backgroundColor = Color.HSVToRGB(h, s, v);
+      pendingFuncs.Enqueue(() =>
+      {
+        var camera = FindObjectOfType<Camera>();
+        if (camera != null)
+        {
+          camera.backgroundColor = Color.HSVToRGB(h, s, v);
+        }
+      });
+      return "";
+    });
+
+
+    Callback camera = new Callback("Camera", true, (args) =>
+    {
+      var jsCam = new JsObject();
+      var objId = jsCam.getId();
+
+      float fov = (float)args[0];
+      float near = 1;
+      if (args.Count > 1)
+      {
+        near = (float)args[1];
+
+      }
+      float far = 1000;
+      if (args.Count > 2)
+      {
+        far = (float)args[2];
+      }
+
+      pendingFuncs.Enqueue(() =>
+      {
+        var go = new GameObject("Camera");
+        gameObjects[objId] = go;
+        var camera = go.AddComponent<Camera>();
+        camera.fieldOfView = fov;
+        camera.nearClipPlane = near;
+        camera.farClipPlane = far;
+        camera.backgroundColor = backgroundColor;
+        camera.clearFlags = CameraClearFlags.SolidColor;
+      });
+
+      var setPosition = new Callback("setPosition", false, (args) =>
+      {
+        float x = (float)args[0];
+        float y = (float)args[1];
+        float z = (float)args[2];
+        pendingFuncs.Enqueue(() =>
+        {
+          gameObjects[objId].transform.position = new Vector3(x, y, z);
+        });
+        return "";
+      });
+      jsCam.addMethod(setPosition);
+
+      return jsCam.buildReturnValue();
+    });
+
 
     Callback cube = new Callback("Cube", true, (args) =>
     {
@@ -79,16 +145,25 @@ public class Test : MonoBehaviour
       var jsCube = new JsObject();
       var objId = jsCube.getId();
 
+      float x = (float)args[0];
+      float y = (float)args[1];
+      float z = (float)args[2];
+      string name = "Cube";
+
+      if (args.Count > 3)
+      {
+        name = (string)args[3];
+      }
+
       pendingFuncs.Enqueue(() =>
       {
         Debug.Log(args);
         var cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        float size = (float)args[0];
         gameObjects[objId] = cube;
-        cube.transform.localScale = new Vector3(size, size, size);
+        cube.transform.localScale = new Vector3(x, y, z);
+        cube.name = name;
       });
 
-      Debug.Log("pending count " + pendingFuncs.Count);
 
       var setPosition = new Callback("setPosition", false, (args) =>
       {
@@ -128,6 +203,11 @@ public class Test : MonoBehaviour
           if (rb != null)
           {
             rb.useGravity = enable;
+            if (!enable)
+            {
+              rb.velocity = Vector3.zero;
+              rb.angularVelocity = Vector3.zero;
+            }
             return;
           }
 
@@ -141,9 +221,57 @@ public class Test : MonoBehaviour
       });
       jsCube.addMethod(enableGravity);
 
-      var ret = jsCube.buildReturnValue();
+      var addForce = new Callback("addForce", false, (args) =>
+      {
+        float x = (float)args[0];
+        float y = (float)args[1];
+        float z = (float)args[2];
+        pendingFuncs.Enqueue(() =>
+        {
+          var go = gameObjects[objId];
+          var rb = go.GetComponent<Rigidbody>();
+          if (rb != null)
+          {
+            rb.AddForce(x, y, z);
+            return;
+          }
+          else
+          {
+            // TODO: add option to log to js console
+          }
+        });
 
-      Debug.Log("ret" + ret);
+        return "";
+      });
+      jsCube.addMethod(addForce);
+
+
+      var setVelocity = new Callback("setVelocity", false, (args) =>
+      {
+        float x = (float)args[0];
+        float y = (float)args[1];
+        float z = (float)args[2];
+        pendingFuncs.Enqueue(() =>
+        {
+          var go = gameObjects[objId];
+          var rb = go.GetComponent<Rigidbody>();
+          if (rb != null)
+          {
+            rb.velocity = new Vector3(x, y, z);
+            return;
+          }
+          else
+          {
+            // TODO: add option to log to js console
+          }
+        });
+
+        return "";
+      });
+      jsCube.addMethod(setVelocity);
+
+
+      var ret = jsCube.buildReturnValue();
       return ret;
     });
 
