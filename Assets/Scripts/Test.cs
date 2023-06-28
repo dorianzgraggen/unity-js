@@ -21,7 +21,7 @@ public class Test : MonoBehaviour
 
   static Dictionary<uint, GameObject> gameObjects = new Dictionary<uint, GameObject>();
 
-  static bool shouldReload = false;
+  public static bool shouldReload = false;
 
   // Define the callback function
   public static int MyCallback(int a, int b)
