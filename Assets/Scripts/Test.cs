@@ -7,10 +7,13 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Js2;
 using UnityEngine.SceneManagement;
+using System.IO;
 
 public class Test : MonoBehaviour
 {
   public string JSFile;
+
+  public static string currentJSFile;
 
   List<Callback> callbacks = new List<Callback>();
 
@@ -18,6 +21,8 @@ public class Test : MonoBehaviour
   static ConcurrentQueue<Action> pendingFuncs = new ConcurrentQueue<Action>();
 
   static Dictionary<uint, GameObject> gameObjects = new Dictionary<uint, GameObject>();
+
+  static bool shouldReload = false;
 
   // Define the callback function
   public static int MyCallback(int a, int b)
@@ -60,6 +65,8 @@ public class Test : MonoBehaviour
 
   void Start()
   {
+    Debug.Log("thread" + System.Threading.Thread.CurrentThread.Name);
+
     Callback.reset();
     JsObjectPool.reset();
     JsPlugin.Setup();
@@ -69,6 +76,11 @@ public class Test : MonoBehaviour
     JsPlugin.clearLogFile();
     JsPlugin.setLogToFile(true);
     JsPlugin.setTaskCallback(TaskCallback);
+
+    if (currentJSFile == null)
+    {
+      currentJSFile = JSFile;
+    }
 
     Callback cb1 = new Callback("lol", false, (args) =>
     {
@@ -304,13 +316,21 @@ public class Test : MonoBehaviour
 
     Debug.Log("callbacks" + callbacks.Count);
 
-    JsPlugin.InitFromPath(JSFile);
+    JsPlugin.InitFromPath(currentJSFile);
     updateLogs();
     keyCodes = Enum.GetValues(typeof(KeyCode));
+
+    watchForChanges(currentJSFile);
   }
 
   void Update()
   {
+    if (shouldReload)
+    {
+      shouldReload = false;
+      JsPlugin.Stop();
+      Invoke("reload", 0.2f);
+    }
     Action result;
     while (pendingFuncs.TryDequeue(out result))
     {
@@ -334,8 +354,8 @@ public class Test : MonoBehaviour
       {
         if (key == KeyCode.F5)
         {
-          // JsPlugin.Stop();
-          Invoke("reload", 0.5f);
+          JsPlugin.Stop();
+          Invoke("reload", 0.2f);
         }
 
         Debug.Log("KeyCode down: " + key);
@@ -450,7 +470,35 @@ public class Test : MonoBehaviour
 
   private void reload()
   {
+    Debug.Log("reloading");
     SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+  }
+
+  public void watchForChanges(string path)
+  {
+    FileSystemWatcher watcher = new FileSystemWatcher();
+    watcher.Path = Path.GetDirectoryName(path); ;
+
+    watcher.NotifyFilter = NotifyFilters.LastAccess | NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.DirectoryName;
+
+    watcher.Filter = "*.js";
+
+    watcher.Changed += new FileSystemEventHandler(onFileChanged);
+
+    watcher.EnableRaisingEvents = true;
+  }
+
+  private static void onFileChanged(object source, FileSystemEventArgs e)
+  {
+    Debug.Log("-- Thread" + System.Threading.Thread.CurrentThread.Name);
+    Debug.Log("-- File: " + e.FullPath + " " + e.ChangeType);
+
+    if (e.FullPath.Contains(".copy.js"))
+    {
+      return;
+    }
+
+    shouldReload = true;
   }
 }
 
