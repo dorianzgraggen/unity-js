@@ -75,3 +75,7 @@ crashlytics-build.properties
 *.copy.js.meta
 rs-log.txt
 rs-log.txt.meta
+
+
+Assets/StreamingAssets/combined.js
+Assets/StreamingAssets/combined.js.meta

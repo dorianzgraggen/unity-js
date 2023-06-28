@@ -11,7 +11,6 @@ using System.IO;
 
 public class Test : MonoBehaviour
 {
-  public string JSFile;
 
   public static string currentJSFile;
 
@@ -65,6 +64,7 @@ public class Test : MonoBehaviour
 
   void Start()
   {
+    Debug.Log(Application.streamingAssetsPath);
     Debug.Log("thread" + System.Threading.Thread.CurrentThread.Name);
 
     Callback.reset();
@@ -79,7 +79,7 @@ public class Test : MonoBehaviour
 
     if (currentJSFile == null)
     {
-      currentJSFile = JSFile;
+      currentJSFile = Path.Combine(Application.streamingAssetsPath, "app.js");
     }
 
     Callback cb1 = new Callback("lol", false, (args) =>
@@ -314,10 +314,25 @@ public class Test : MonoBehaviour
     JsPlugin.printFunctionList();
     updateLogs();
 
+    string epilogue = File.ReadAllText(Path.Combine(Application.streamingAssetsPath, "epilogue.js"));
+
     Debug.Log("callbacks" + callbacks.Count);
 
-    JsPlugin.InitFromPath(currentJSFile);
+    var combined = Path.Combine(Application.streamingAssetsPath, "combined.js");
+    File.Copy(currentJSFile, combined, true);
+
+    Debug.Log("epilogue: " + epilogue);
+
+    using (StreamWriter sw = File.AppendText(combined))
+    {
+      sw.Write(epilogue);
+    }
+
+    Debug.Log("combined" + combined);
+
+    JsPlugin.InitFromPath(combined);
     updateLogs();
+
     keyCodes = Enum.GetValues(typeof(KeyCode));
 
     watchForChanges(currentJSFile);
@@ -493,7 +508,7 @@ public class Test : MonoBehaviour
     Debug.Log("-- Thread" + System.Threading.Thread.CurrentThread.Name);
     Debug.Log("-- File: " + e.FullPath + " " + e.ChangeType);
 
-    if (e.FullPath.Contains(".copy.js"))
+    if (e.FullPath.Contains(".copy.js") || e.FullPath.Contains("combined.js"))
     {
       return;
     }

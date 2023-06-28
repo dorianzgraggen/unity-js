@@ -1,12 +1,3 @@
-writeFile("ahahaha", "mewo")
-// lol();
-// console2.log(multiply(4, 9));
-// console2.log("alles klar");
-
-// addEventListener("lucky", (e) => {
-//   console2.log("wow, it's " + JSON.stringify(e));
-// })
-
 let cubes = [];
 
 for (let i = 0; i < 6; i++) {
@@ -57,25 +48,3 @@ function tick() {
   // testPerformance();
 }
 
-const TIME = {
-  seconds: 0,
-  deltaSeconds: 0
-}
-let secondsBefore = 0;
-const interval = 16;
-
-function core_loop() {
-  handle_events()
-  // getGlobals();
-  tick()
-  TIME.seconds += 1 / interval;
-  TIME.deltaSeconds = TIME.seconds - secondsBefore;
-  secondsBefore = TIME.seconds;
-  if (!shouldExit()) {
-    setTimeout(core_loop, interval);
-  } else {
-    console2.log("exiting")
-  }
-}
-
-core_loop()
