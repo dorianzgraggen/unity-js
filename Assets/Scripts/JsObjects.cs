@@ -10,6 +10,11 @@ namespace Js2
     {
       return nextId++;
     }
+
+    public static void reset()
+    {
+      nextId = 0;
+    }
   }
 
   public class JsObject

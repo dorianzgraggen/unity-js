@@ -6,6 +6,7 @@ using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Js2;
+using UnityEngine.SceneManagement;
 
 public class Test : MonoBehaviour
 {
@@ -29,11 +30,17 @@ public class Test : MonoBehaviour
 
   public static string TaskCallback(byte id, string jsonArgs)
   {
+    if (!Callback.dict.ContainsKey(id))
+    {
+      Debug.LogWarning("callback " + id + " not found");
+      return "";
+    }
     var callback = Callback.dict[id];
     // Debug.Log("calling " + callback.name + " with args " + jsonArgs);
 
     var args = JArray.Parse(jsonArgs);
 
+    // Debug.Log("callback " + callback.name + " with " + args);
     var result = callback.fn(args);
     // Debug.Log("result " + result);
     stopwatch.Restart();
@@ -53,6 +60,12 @@ public class Test : MonoBehaviour
 
   void Start()
   {
+    Callback.reset();
+    JsObjectPool.reset();
+    JsPlugin.Setup();
+    pendingFuncs.Clear();
+    gameObjects.Clear();
+    //JsPlugin.Stop();
     JsPlugin.clearLogFile();
     JsPlugin.setLogToFile(true);
     JsPlugin.setTaskCallback(TaskCallback);
@@ -180,6 +193,8 @@ public class Test : MonoBehaviour
 
       var setHSV = new Callback("setHSV", false, (args) =>
       {
+        Debug.Log("args" + args);
+
         float h = (float)args[0];
         float s = (float)args[1];
         float v = (float)args[2];
@@ -287,6 +302,8 @@ public class Test : MonoBehaviour
     JsPlugin.printFunctionList();
     updateLogs();
 
+    Debug.Log("callbacks" + callbacks.Count);
+
     JsPlugin.InitFromPath(JSFile);
     updateLogs();
     keyCodes = Enum.GetValues(typeof(KeyCode));
@@ -315,6 +332,12 @@ public class Test : MonoBehaviour
     {
       if (Input.GetKeyDown(key))
       {
+        if (key == KeyCode.F5)
+        {
+          // JsPlugin.Stop();
+          Invoke("reload", 0.5f);
+        }
+
         Debug.Log("KeyCode down: " + key);
         string data = JsonConvert.SerializeObject(new { key = key.ToString() });
         JsPlugin.sendEvent("keydown", data);
@@ -424,6 +447,11 @@ public class Test : MonoBehaviour
       Debug.Log("Rust Log: \n" + s);
     }
   }
+
+  private void reload()
+  {
+    SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+  }
 }
 
 
@@ -446,6 +474,12 @@ public struct Callback
 
     JsPlugin.registerFunction(this.name, this.id, this.isConstructor);
     dict[this.id] = this;
+  }
+
+  public static void reset()
+  {
+    nextId = 1;
+    Callback.dict = new Dictionary<uint, Callback>();
   }
 
   public static Dictionary<uint, Callback> dict = new Dictionary<uint, Callback>();

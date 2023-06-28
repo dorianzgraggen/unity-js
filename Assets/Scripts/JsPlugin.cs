@@ -54,4 +54,8 @@ public static unsafe class JsPlugin
   [PluginFunctionAttr("stop")]
   public static stop Stop = null;
   public delegate void stop();
+
+  [PluginFunctionAttr("setup")]
+  public static setup Setup = null;
+  public delegate void setup();
 }
