@@ -176,6 +176,7 @@ public class Test : MonoBehaviour
     JsPlugin.Setup();
     JsPlugin.clearLogFile();
     JsPlugin.setLogToFile(true);
+    JsPlugin.setLogFilePath(Path.Combine(Application.streamingAssetsPath, "log.txt"));
     JsPlugin.setTaskCallback(TaskCallback);
 
     if (sourceJsFile == null)

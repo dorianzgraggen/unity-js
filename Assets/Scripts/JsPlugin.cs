@@ -58,4 +58,8 @@ public static unsafe class JsPlugin
   [PluginFunctionAttr("setup")]
   public static setup Setup = null;
   public delegate void setup();
+
+  [PluginFunctionAttr("set_log_filepath")]
+  public static set_log_filepath setLogFilePath = null;
+  public delegate void set_log_filepath(string path);
 }
