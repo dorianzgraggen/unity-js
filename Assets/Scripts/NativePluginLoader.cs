@@ -51,8 +51,6 @@ namespace fts
     Dictionary<string, IntPtr> _loadedPlugins = new Dictionary<string, IntPtr>();
     string _path;
 
-    public string DevPath;
-
     // Static Properties
     static NativePluginLoader singleton
     {
@@ -83,7 +81,7 @@ namespace fts
 
       _singleton = this;
       DontDestroyOnLoad(this.gameObject);
-      _path = DevPath;
+      _path = System.IO.Path.Combine(Application.streamingAssetsPath, "./");
 
       LoadAll();
     }
