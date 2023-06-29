@@ -11,8 +11,116 @@ using System.IO;
 
 public class Test : MonoBehaviour
 {
+  static class Implementations
+  {
+    static public string setPosition(JArray args, uint objId)
+    {
+      float x = (float)args[0];
+      float y = (float)args[1];
+      float z = (float)args[2];
+      pendingFuncs.Enqueue(() =>
+      {
+        gameObjects[objId].transform.position = new Vector3(x, y, z);
+      });
 
-  public static string currentJSFile;
+      return "";
+    }
+
+    public static string setHSV(JArray args, uint objId)
+    {
+      float h = (float)args[0];
+      float s = (float)args[1];
+      float v = (float)args[2];
+
+      pendingFuncs.Enqueue(() =>
+      {
+        var go = gameObjects[objId];
+        go.GetComponent<MeshRenderer>().material.color = Color.HSVToRGB(h, s, v);
+      });
+
+      return "";
+    }
+
+    public static string addRigidBody(JArray args, uint objId)
+    {
+      bool enable = (bool)args[0];
+
+      pendingFuncs.Enqueue(() =>
+      {
+        var go = gameObjects[objId];
+        var rb = go.GetComponent<Rigidbody>();
+        if (rb != null)
+        {
+          rb.useGravity = enable;
+          if (!enable)
+          {
+            rb.velocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+          }
+          return;
+        }
+
+        if (enable)
+        {
+          go.AddComponent<Rigidbody>();
+        }
+      });
+
+      return "";
+    }
+
+
+    public static string addForce(JArray args, uint objId)
+    {
+      float x = (float)args[0];
+      float y = (float)args[1];
+      float z = (float)args[2];
+
+      pendingFuncs.Enqueue(() =>
+          {
+            var go = gameObjects[objId];
+            var rb = go.GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+              rb.AddForce(x, y, z);
+              return;
+            }
+            else
+            {
+              // TODO: add option to log to js console
+            }
+          });
+
+      return "";
+    }
+
+    public static string setVelocity(JArray args, uint objId)
+    {
+      float x = (float)args[0];
+      float y = (float)args[1];
+      float z = (float)args[2];
+
+      pendingFuncs.Enqueue(() =>
+          {
+            var go = gameObjects[objId];
+            var rb = go.GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+              rb.velocity = new Vector3(x, y, z);
+              return;
+            }
+            else
+            {
+              // TODO: add option to log to js console
+            }
+          });
+
+      return "";
+    }
+
+  }
+
+  public static string sourceJsFile;
 
   List<Callback> callbacks = new List<Callback>();
 
@@ -51,10 +159,6 @@ public class Test : MonoBehaviour
     var json_result = JsonConvert.SerializeObject(result);
     stopwatch.Stop();
 
-    // Debug.Log("json result " + json_result);
-
-    // Debug.Log("Received from Rust " + args);
-
     var micros = stopwatch.ElapsedTicks * 1000 * 1000 / System.Diagnostics.Stopwatch.Frequency;
     // Debug.Log("elapsed micros:" + micros);
     return json_result;
@@ -64,34 +168,46 @@ public class Test : MonoBehaviour
 
   void Start()
   {
-    Debug.Log(Application.streamingAssetsPath);
-    Debug.Log("thread" + System.Threading.Thread.CurrentThread.Name);
-
     Callback.reset();
     JsObjectPool.reset();
-    JsPlugin.Setup();
     pendingFuncs.Clear();
     gameObjects.Clear();
-    //JsPlugin.Stop();
+
+    JsPlugin.Setup();
     JsPlugin.clearLogFile();
     JsPlugin.setLogToFile(true);
     JsPlugin.setTaskCallback(TaskCallback);
 
-    if (currentJSFile == null)
+    if (sourceJsFile == null)
     {
-      currentJSFile = Path.Combine(Application.streamingAssetsPath, "app.js");
+      sourceJsFile = Path.Combine(Application.streamingAssetsPath, "app.js");
     }
 
-    Callback cb1 = new Callback("lol", false, (args) =>
-    {
-      Debug.Log("alles nice haha" + args);
-      return new
-      {
-        lol = "alles geilooo",
-        num = 10482
-      };
-    });
+    RegisterCallbacks();
 
+    string jsPath = AppendEpilogue();
+    JsPlugin.InitFromPath(jsPath);
+
+    keyCodes = Enum.GetValues(typeof(KeyCode));
+
+    watchForChanges(sourceJsFile);
+  }
+
+  private static string AppendEpilogue()
+  {
+    string epilogue = File.ReadAllText(Path.Combine(Application.streamingAssetsPath, "epilogue.js"));
+    var combined = Path.Combine(Application.streamingAssetsPath, "combined.js");
+    File.Copy(sourceJsFile, combined, true);
+    using (StreamWriter sw = File.AppendText(combined))
+    {
+      sw.Write(epilogue);
+    }
+
+    return combined;
+  }
+
+  private void RegisterCallbacks()
+  {
     Callback cb2 = new Callback("multiply", false, (args) =>
     {
       float a = (float)args[0];
@@ -147,17 +263,7 @@ public class Test : MonoBehaviour
         camera.clearFlags = CameraClearFlags.SolidColor;
       });
 
-      var setPosition = new Callback("setPosition", false, (args) =>
-      {
-        float x = (float)args[0];
-        float y = (float)args[1];
-        float z = (float)args[2];
-        pendingFuncs.Enqueue(() =>
-        {
-          gameObjects[objId].transform.position = new Vector3(x, y, z);
-        });
-        return "";
-      });
+      var setPosition = new Callback("setPosition", false, (args) => Implementations.setPosition(args, objId));
       jsCam.addMethod(setPosition);
 
       return jsCam.buildReturnValue();
@@ -166,7 +272,6 @@ public class Test : MonoBehaviour
 
     Callback cube = new Callback("Cube", true, (args) =>
     {
-      Debug.Log("called cube");
       var jsCube = new JsObject();
       var objId = jsCube.getId();
 
@@ -182,121 +287,17 @@ public class Test : MonoBehaviour
 
       pendingFuncs.Enqueue(() =>
       {
-        Debug.Log(args);
         var cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
         gameObjects[objId] = cube;
         cube.transform.localScale = new Vector3(x, y, z);
         cube.name = name;
       });
 
-
-      var setPosition = new Callback("setPosition", false, (args) =>
-      {
-        float x = (float)args[0];
-        float y = (float)args[1];
-        float z = (float)args[2];
-        pendingFuncs.Enqueue(() =>
-        {
-          gameObjects[objId].transform.position = new Vector3(x, y, z);
-        });
-        return "";
-      });
-      jsCube.addMethod(setPosition);
-
-      var setHSV = new Callback("setHSV", false, (args) =>
-      {
-        Debug.Log("args" + args);
-
-        float h = (float)args[0];
-        float s = (float)args[1];
-        float v = (float)args[2];
-        pendingFuncs.Enqueue(() =>
-        {
-
-          var go = gameObjects[objId];
-          go.GetComponent<MeshRenderer>().material.color = Color.HSVToRGB(h, s, v);
-        });
-        return "";
-      });
-      jsCube.addMethod(setHSV);
-
-      var enableGravity = new Callback("enableGravity", false, (args) =>
-      {
-        bool enable = (bool)args[0];
-        pendingFuncs.Enqueue(() =>
-        {
-          var go = gameObjects[objId];
-          var rb = go.GetComponent<Rigidbody>();
-          if (rb != null)
-          {
-            rb.useGravity = enable;
-            if (!enable)
-            {
-              rb.velocity = Vector3.zero;
-              rb.angularVelocity = Vector3.zero;
-            }
-            return;
-          }
-
-          if (enable)
-          {
-            go.AddComponent<Rigidbody>();
-          }
-        });
-
-        return "";
-      });
-      jsCube.addMethod(enableGravity);
-
-      var addForce = new Callback("addForce", false, (args) =>
-      {
-        float x = (float)args[0];
-        float y = (float)args[1];
-        float z = (float)args[2];
-        pendingFuncs.Enqueue(() =>
-        {
-          var go = gameObjects[objId];
-          var rb = go.GetComponent<Rigidbody>();
-          if (rb != null)
-          {
-            rb.AddForce(x, y, z);
-            return;
-          }
-          else
-          {
-            // TODO: add option to log to js console
-          }
-        });
-
-        return "";
-      });
-      jsCube.addMethod(addForce);
-
-
-      var setVelocity = new Callback("setVelocity", false, (args) =>
-      {
-        float x = (float)args[0];
-        float y = (float)args[1];
-        float z = (float)args[2];
-        pendingFuncs.Enqueue(() =>
-        {
-          var go = gameObjects[objId];
-          var rb = go.GetComponent<Rigidbody>();
-          if (rb != null)
-          {
-            rb.velocity = new Vector3(x, y, z);
-            return;
-          }
-          else
-          {
-            // TODO: add option to log to js console
-          }
-        });
-
-        return "";
-      });
-      jsCube.addMethod(setVelocity);
-
+      jsCube.addMethod(new Callback("setPosition", false, (args) => Implementations.setPosition(args, objId)));
+      jsCube.addMethod(new Callback("setHSV", false, (args) => Implementations.setHSV(args, objId)));
+      jsCube.addMethod(new Callback("enableGravity", false, (args) => Implementations.addRigidBody(args, objId)));
+      jsCube.addMethod(new Callback("addForce", false, (args) => Implementations.addForce(args, objId)));
+      jsCube.addMethod(new Callback("setVelocity", false, (args) => Implementations.setVelocity(args, objId)));
 
       var ret = jsCube.buildReturnValue();
       return ret;
@@ -305,7 +306,6 @@ public class Test : MonoBehaviour
 
     Callback gltf = new Callback("GLTF", true, (args) =>
     {
-      Debug.Log("called cube");
       var jsGLTF = new JsObject();
       var objId = jsGLTF.getId();
 
@@ -316,8 +316,6 @@ public class Test : MonoBehaviour
 
       pendingFuncs.Enqueue(() =>
       {
-        Debug.Log(args);
-
         var go = Siccity.GLTFUtility.Importer.LoadFromFile(Path.Combine(Application.streamingAssetsPath, path));
         gameObjects[objId] = go;
         go.transform.localScale = new Vector3(x, y, z);
@@ -325,63 +323,12 @@ public class Test : MonoBehaviour
       });
 
 
-      var setPosition = new Callback("setPosition", false, (args) =>
-      {
-        float x = (float)args[0];
-        float y = (float)args[1];
-        float z = (float)args[2];
-        pendingFuncs.Enqueue(() =>
-        {
-          gameObjects[objId].transform.position = new Vector3(x, y, z);
-        });
-        return "";
-      });
-      jsGLTF.addMethod(setPosition);
+      jsGLTF.addMethod(new Callback("setPosition", false, (args) => Implementations.setPosition(args, objId)));
+      jsGLTF.addMethod(new Callback("setHSV", false, (args) => Implementations.setHSV(args, objId)));
+      jsGLTF.addMethod(new Callback("enableGravity", false, (args) => Implementations.addRigidBody(args, objId)));
+      jsGLTF.addMethod(new Callback("addForce", false, (args) => Implementations.addForce(args, objId)));
+      jsGLTF.addMethod(new Callback("setVelocity", false, (args) => Implementations.setVelocity(args, objId)));
 
-      var setHSV = new Callback("setHSV", false, (args) =>
-      {
-        Debug.Log("args" + args);
-
-        float h = (float)args[0];
-        float s = (float)args[1];
-        float v = (float)args[2];
-        pendingFuncs.Enqueue(() =>
-        {
-
-          var go = gameObjects[objId];
-          go.GetComponent<MeshRenderer>().material.color = Color.HSVToRGB(h, s, v);
-        });
-        return "";
-      });
-      jsGLTF.addMethod(setHSV);
-
-      var enableGravity = new Callback("enableGravity", false, (args) =>
-      {
-        bool enable = (bool)args[0];
-        pendingFuncs.Enqueue(() =>
-        {
-          var go = gameObjects[objId];
-          var rb = go.GetComponent<Rigidbody>();
-          if (rb != null)
-          {
-            rb.useGravity = enable;
-            if (!enable)
-            {
-              rb.velocity = Vector3.zero;
-              rb.angularVelocity = Vector3.zero;
-            }
-            return;
-          }
-
-          if (enable)
-          {
-            go.AddComponent<Rigidbody>();
-          }
-        });
-
-        return "";
-      });
-      jsGLTF.addMethod(enableGravity);
 
       var enableCollisions = new Callback("enableCollisions", false, (args) =>
       {
@@ -407,94 +354,9 @@ public class Test : MonoBehaviour
       });
       jsGLTF.addMethod(enableCollisions);
 
-      var addForce = new Callback("addForce", false, (args) =>
-      {
-        float x = (float)args[0];
-        float y = (float)args[1];
-        float z = (float)args[2];
-        pendingFuncs.Enqueue(() =>
-        {
-          var go = gameObjects[objId];
-          var rb = go.GetComponent<Rigidbody>();
-          if (rb != null)
-          {
-            rb.AddForce(x, y, z);
-            return;
-          }
-          else
-          {
-            // TODO: add option to log to js console
-          }
-        });
-
-        return "";
-      });
-      jsGLTF.addMethod(addForce);
-
-
-      var setVelocity = new Callback("setVelocity", false, (args) =>
-      {
-        float x = (float)args[0];
-        float y = (float)args[1];
-        float z = (float)args[2];
-        pendingFuncs.Enqueue(() =>
-        {
-          var go = gameObjects[objId];
-          var rb = go.GetComponent<Rigidbody>();
-          if (rb != null)
-          {
-            rb.velocity = new Vector3(x, y, z);
-            return;
-          }
-          else
-          {
-            // TODO: add option to log to js console
-          }
-        });
-
-        return "";
-      });
-      jsGLTF.addMethod(setVelocity);
-
-
       var ret = jsGLTF.buildReturnValue();
       return ret;
     });
-
-
-    JsPlugin.printFunctionList();
-
-    // for (int i = 0; i < callbacks.Count; i++)
-    // {
-    //   Callback cb = callbacks[i];
-    //   JsPlugin.registerFunction(cb.name, (uint)(i + 1));
-    // }
-
-    JsPlugin.printFunctionList();
-    updateLogs();
-
-    string epilogue = File.ReadAllText(Path.Combine(Application.streamingAssetsPath, "epilogue.js"));
-
-    Debug.Log("callbacks" + callbacks.Count);
-
-    var combined = Path.Combine(Application.streamingAssetsPath, "combined.js");
-    File.Copy(currentJSFile, combined, true);
-
-    Debug.Log("epilogue: " + epilogue);
-
-    using (StreamWriter sw = File.AppendText(combined))
-    {
-      sw.Write(epilogue);
-    }
-
-    Debug.Log("combined" + combined);
-
-    JsPlugin.InitFromPath(combined);
-    updateLogs();
-
-    keyCodes = Enum.GetValues(typeof(KeyCode));
-
-    watchForChanges(currentJSFile);
   }
 
   void Update()
@@ -515,12 +377,12 @@ public class Test : MonoBehaviour
 
     sendEvents();
 
-    handleKeys();
+    HandleKeys();
   }
 
   Array keyCodes;
 
-  private void handleKeys()
+  private void HandleKeys()
   {
     foreach (KeyCode key in keyCodes)
     {

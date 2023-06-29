@@ -47,7 +47,7 @@ public class DragAndDrop : MonoBehaviour
     if (camera != null)
     {
       camera.backgroundColor = Color.HSVToRGB(1, 1, 1);
-      Test.currentJSFile = file;
+      Test.sourceJsFile = file;
       Test.shouldReload = true;
     }
   }
