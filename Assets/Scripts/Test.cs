@@ -383,6 +383,30 @@ public class Test : MonoBehaviour
       });
       jsGLTF.addMethod(enableGravity);
 
+      var enableCollisions = new Callback("enableCollisions", false, (args) =>
+      {
+        bool enable = (bool)args[0];
+        pendingFuncs.Enqueue(() =>
+        {
+          var go = gameObjects[objId];
+          var mc = go.GetComponent<MeshCollider>();
+          if (mc != null)
+          {
+            mc.enabled = enable;
+            return;
+          }
+
+          if (enable)
+          {
+            var collider = go.AddComponent<MeshCollider>();
+            collider.convex = true;
+          }
+        });
+
+        return "";
+      });
+      jsGLTF.addMethod(enableCollisions);
+
       var addForce = new Callback("addForce", false, (args) =>
       {
         float x = (float)args[0];

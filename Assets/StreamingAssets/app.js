@@ -13,6 +13,7 @@ for (let i = 0; i < 6; i++) {
 // let player = new Cube(0.2, 0.2, 0.2, "Bird");
 let player = new GLTF("bird.gltf", 0.2, 0.2, 0.2);
 player.enableGravity(true);
+player.enableCollisions(true);
 
 const camera = new Camera(25);
 camera.setPosition(0, 0, -12);
