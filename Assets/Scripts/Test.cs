@@ -316,7 +316,8 @@ public class Test : MonoBehaviour
 
       pendingFuncs.Enqueue(() =>
       {
-        var go = Siccity.GLTFUtility.Importer.LoadFromFile(Path.Combine(Application.streamingAssetsPath, path));
+        string fullPath = Path.Combine(Path.GetDirectoryName(sourceJsFile), path);
+        var go = Siccity.GLTFUtility.Importer.LoadFromFile(fullPath);
         gameObjects[objId] = go;
         go.transform.localScale = new Vector3(x, y, z);
         go.name = path;
