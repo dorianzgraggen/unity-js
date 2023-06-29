@@ -303,6 +303,141 @@ public class Test : MonoBehaviour
     });
 
 
+    Callback gltf = new Callback("GLTF", true, (args) =>
+    {
+      Debug.Log("called cube");
+      var jsGLTF = new JsObject();
+      var objId = jsGLTF.getId();
+
+      string path = (string)args[0];
+      float x = (float)args[1];
+      float y = (float)args[2];
+      float z = (float)args[3];
+
+      pendingFuncs.Enqueue(() =>
+      {
+        Debug.Log(args);
+
+        var go = Siccity.GLTFUtility.Importer.LoadFromFile(Path.Combine(Application.streamingAssetsPath, path));
+        gameObjects[objId] = go;
+        go.transform.localScale = new Vector3(x, y, z);
+        go.name = path;
+      });
+
+
+      var setPosition = new Callback("setPosition", false, (args) =>
+      {
+        float x = (float)args[0];
+        float y = (float)args[1];
+        float z = (float)args[2];
+        pendingFuncs.Enqueue(() =>
+        {
+          gameObjects[objId].transform.position = new Vector3(x, y, z);
+        });
+        return "";
+      });
+      jsGLTF.addMethod(setPosition);
+
+      var setHSV = new Callback("setHSV", false, (args) =>
+      {
+        Debug.Log("args" + args);
+
+        float h = (float)args[0];
+        float s = (float)args[1];
+        float v = (float)args[2];
+        pendingFuncs.Enqueue(() =>
+        {
+
+          var go = gameObjects[objId];
+          go.GetComponent<MeshRenderer>().material.color = Color.HSVToRGB(h, s, v);
+        });
+        return "";
+      });
+      jsGLTF.addMethod(setHSV);
+
+      var enableGravity = new Callback("enableGravity", false, (args) =>
+      {
+        bool enable = (bool)args[0];
+        pendingFuncs.Enqueue(() =>
+        {
+          var go = gameObjects[objId];
+          var rb = go.GetComponent<Rigidbody>();
+          if (rb != null)
+          {
+            rb.useGravity = enable;
+            if (!enable)
+            {
+              rb.velocity = Vector3.zero;
+              rb.angularVelocity = Vector3.zero;
+            }
+            return;
+          }
+
+          if (enable)
+          {
+            go.AddComponent<Rigidbody>();
+          }
+        });
+
+        return "";
+      });
+      jsGLTF.addMethod(enableGravity);
+
+      var addForce = new Callback("addForce", false, (args) =>
+      {
+        float x = (float)args[0];
+        float y = (float)args[1];
+        float z = (float)args[2];
+        pendingFuncs.Enqueue(() =>
+        {
+          var go = gameObjects[objId];
+          var rb = go.GetComponent<Rigidbody>();
+          if (rb != null)
+          {
+            rb.AddForce(x, y, z);
+            return;
+          }
+          else
+          {
+            // TODO: add option to log to js console
+          }
+        });
+
+        return "";
+      });
+      jsGLTF.addMethod(addForce);
+
+
+      var setVelocity = new Callback("setVelocity", false, (args) =>
+      {
+        float x = (float)args[0];
+        float y = (float)args[1];
+        float z = (float)args[2];
+        pendingFuncs.Enqueue(() =>
+        {
+          var go = gameObjects[objId];
+          var rb = go.GetComponent<Rigidbody>();
+          if (rb != null)
+          {
+            rb.velocity = new Vector3(x, y, z);
+            return;
+          }
+          else
+          {
+            // TODO: add option to log to js console
+          }
+        });
+
+        return "";
+      });
+      jsGLTF.addMethod(setVelocity);
+
+
+      var ret = jsGLTF.buildReturnValue();
+      return ret;
+    });
+
+
     JsPlugin.printFunctionList();
 
     // for (int i = 0; i < callbacks.Count; i++)
